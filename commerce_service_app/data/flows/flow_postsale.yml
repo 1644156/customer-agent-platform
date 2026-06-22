@@ -1,0 +1,31 @@
+# -*- coding: utf-8 -*-
+# 售后Flow定义
+# 适配customer_agent框架语法
+
+version: "3.1"
+
+flows:
+  apply_postsale:
+    name: 申请售后
+    description: 当用户想要申请退货或换货时使用
+    steps:
+      - set_slots:
+          - goto: action_ask_order_id_after_delivered
+      - id: collect_order
+        collect: order_id
+        next:
+          - if: slots.order_id != False
+            then: check_eligible
+          - else: exit_postsale
+      - id: check_eligible
+        action: action_check_postsale_eligible
+      - id: collect_type
+        collect: postsale_type
+      - id: collect_reason
+        collect: postsale_reason
+      - id: apply
+        action: action_apply_postsale
+        next: END
+      - id: exit_postsale
+        action: action_cancel_flow
+        next: END

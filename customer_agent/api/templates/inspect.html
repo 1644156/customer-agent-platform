@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' ws: wss:;">
+    <title>Customer LLM - Service</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0a0a0f;
+            --paper: #111117;
+            --elevated: #18181f;
+            --surface: #1e1e27;
+            --surface-hover: #26262f;
+            --border: rgba(255,255,255,0.07);
+            --border-strong: rgba(255,255,255,0.14);
+            --text-1: #e8e8ed;
+            --text-2: #8a8a9a;
+            --text-3: #4e4e5e;
+            --ember: #e85d3a;
+            --ember-dim: rgba(232,93,58,0.12);
+            --ember-glow: rgba(232,93,58,0.3);
+            --teal: #3acbbe;
+            --teal-dim: rgba(58,203,190,0.1);
+            --violet: #9b7dff;
+            --violet-dim: rgba(155,125,255,0.1);
+            --red: #f06060;
+            --red-dim: rgba(240,96,96,0.1);
+            --display: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --mono: 'Space Mono', 'Menlo', monospace;
+            --radius: 8px;
+            --radius-lg: 12px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--display);
+            background: var(--ink);
+            color: var(--text-1);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .shell {
+            display: grid;
+            grid-template-columns: 240px 1fr 280px;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        .col { background: var(--paper); display: flex; flex-direction: column; overflow: hidden; }
+
+        .pane {
+            background: var(--paper);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .pane-head {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--elevated);
+            min-height: 44px;
+        }
+
+        .pane-head h2 {
+            font-family: var(--mono);
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+        }
+
+        .pane-body {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--surface) transparent;
+        }
+
+        .pane-body::-webkit-scrollbar { width: 4px; }
+        .pane-body::-webkit-scrollbar-track { background: transparent; }
+        .pane-body::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 4px; }
+
+        /* Left column */
+        .col-left { display: flex; flex-direction: column; }
+        .col-left .pane { background: transparent; }
+        .flow-list { flex: 0 0 auto; max-height: 180px; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+
+        th {
+            padding: 8px 16px;
+            text-align: left;
+            font-family: var(--mono);
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--paper);
+            z-index: 2;
+        }
+
+        td {
+            padding: 7px 16px;
+            text-align: left;
+            color: var(--text-2);
+            font-family: var(--mono);
+            font-size: 10.5px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.12s;
+        }
+
+        tr:hover td { background: var(--surface-hover); }
+
+        .flow-row { cursor: pointer; }
+        .flow-row.active td {
+            background: var(--ember-dim);
+            color: var(--ember);
+        }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 1px; }
+
+        .tab {
+            padding: 4px 10px;
+            background: none;
+            border: none;
+            color: var(--text-3);
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: var(--mono);
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.15s;
+        }
+
+        .tab.active { background: var(--ember-dim); color: var(--ember); }
+        .tab:hover:not(.active) { background: var(--surface); color: var(--text-2); }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* Center: flow diagram */
+        .flow-panel .pane-body {
+            background: var(--ink);
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            overflow: auto;
+        }
+
+        .mermaid svg { display: block; }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            height: 100%;
+            color: var(--text-3);
+        }
+
+        .empty-state svg { width: 32px; height: 32px; opacity: 0.25; stroke: var(--text-3); }
+
+        .empty-state span {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Pattern info card */
+        .pattern-card {
+            background: var(--elevated);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pattern-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--ember), var(--violet));
+        }
+
+        .pattern-card strong {
+            font-family: var(--display);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-1);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .pattern-card p {
+            font-size: 12px;
+            color: var(--text-2);
+            line-height: 1.55;
+        }
+
+        .pattern-card code {
+            font-family: var(--mono);
+            font-size: 10px;
+            background: var(--violet-dim);
+            color: var(--violet);
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        /* Chat */
+        .chat-logo {
+            font-family: var(--display);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .chat-logo em {
+            font-style: normal;
+            color: var(--ember);
+        }
+
+        .logo-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--ember);
+            margin-left: 5px;
+            vertical-align: middle;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 6px var(--ember-glow); opacity: 1; }
+            50% { box-shadow: 0 0 14px var(--ember-glow); opacity: 0.6; }
+        }
+
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--surface) transparent;
+        }
+
+        #chat-box::-webkit-scrollbar { width: 4px; }
+        #chat-box::-webkit-scrollbar-track { background: transparent; }
+        #chat-box::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 4px; }
+
+        .msg {
+            padding: 9px 14px;
+            border-radius: 10px;
+            max-width: 80%;
+            font-size: 12.5px;
+            line-height: 1.5;
+            animation: fadeUp 0.18s ease-out;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg.user {
+            background: var(--ember);
+            color: #fff;
+            font-weight: 500;
+            margin-left: auto;
+            border-bottom-right-radius: 3px;
+        }
+
+        .msg.bot {
+            background: var(--surface);
+            color: var(--text-1);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 3px;
+        }
+
+        /* Quick reply buttons */
+        .msg-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .msg-btn {
+            padding: 5px 12px;
+            background: var(--surface-hover);
+            color: var(--text-2);
+            border: 1px solid var(--border-strong);
+            border-radius: 16px;
+            cursor: pointer;
+            font-family: var(--display);
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .msg-btn:hover {
+            background: var(--ember-dim);
+            border-color: var(--ember);
+            color: var(--ember);
+        }
+
+        /* Input area */
+        .input-area {
+            padding: 12px 14px;
+            border-top: 1px solid var(--border);
+            background: var(--elevated);
+        }
+
+        .uid-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .uid-row label {
+            font-family: var(--mono);
+            font-size: 9px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            white-space: nowrap;
+        }
+
+        .uid-row input {
+            flex: 1;
+            padding: 5px 8px;
+            font-family: var(--mono);
+            font-size: 11px;
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text-1);
+            transition: border-color 0.15s;
+        }
+
+        .uid-row input:focus { outline: none; border-color: var(--ember); }
+
+        .send-row { display: flex; gap: 6px; }
+
+        #message-input {
+            flex: 1;
+            padding: 9px 14px;
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-1);
+            font-family: var(--display);
+            font-size: 12.5px;
+            transition: all 0.15s;
+        }
+
+        #message-input:focus {
+            outline: none;
+            border-color: var(--ember);
+            box-shadow: 0 0 0 2px var(--ember-dim);
+        }
+
+        #message-input::placeholder { color: var(--text-3); }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* Buttons */
+        button {
+            padding: 7px 16px;
+            background: var(--ember);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+
+        button:hover { background: #f06e4a; box-shadow: 0 2px 12px var(--ember-glow); }
+        button:active { transform: scale(0.97); }
+
+        button.ghost {
+            background: var(--surface);
+            color: var(--text-2);
+            border: 1px solid var(--border);
+        }
+
+        button.ghost:hover { background: var(--surface-hover); color: var(--text-1); box-shadow: none; }
+
+        /* Status */
+        .status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-family: var(--mono);
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .status.connected { background: var(--teal-dim); color: var(--teal); }
+        .status.disconnected { background: var(--red-dim); color: var(--red); }
+
+        /* Slot values */
+        .slot-val {
+            font-family: var(--mono);
+            background: var(--violet-dim);
+            color: var(--violet);
+            padding: 1px 7px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .slot-null { color: var(--text-3); font-style: italic; font-size: 10px; }
+
+        /* Events */
+        .evt {
+            padding: 8px 14px;
+            margin: 0 12px 3px;
+            border-radius: 6px;
+            font-size: 11px;
+            border-left: 2px solid var(--border-strong);
+            transition: background 0.12s;
+        }
+
+        .evt:hover { background: var(--surface-hover); }
+        .evt.user { border-left-color: var(--ember); background: var(--ember-dim); }
+        .evt.bot { border-left-color: var(--teal); background: var(--teal-dim); }
+
+        .evt-type {
+            font-family: var(--mono);
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+        }
+
+        /* Badge */
+        .badge {
+            font-family: var(--mono);
+            font-size: 9px;
+            color: var(--text-3);
+            background: var(--surface);
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Empty */
+        .empty {
+            color: var(--text-3);
+            font-family: var(--mono);
+            font-size: 10.5px;
+            padding: 24px 16px;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        /* Tracker JSON */
+        #tracker-json {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-2);
+            white-space: pre-wrap;
+            padding: 14px 16px;
+            line-height: 1.6;
+        }
+
+        /* Mermaid overrides */
+        .mermaid .node rect,
+        .mermaid .node circle,
+        .mermaid .node polygon {
+            fill: var(--surface) !important;
+            stroke: var(--ember) !important;
+            stroke-width: 1.5px !important;
+        }
+
+        .mermaid .edgePath .path { stroke: var(--text-3) !important; stroke-width: 1.5px !important; }
+        .mermaid .edgeLabel { background: var(--elevated) !important; color: var(--text-2) !important; font-size: 11px !important; font-family: var(--mono) !important; }
+        .mermaid .nodeLabel { color: var(--text-1) !important; font-family: var(--mono) !important; font-size: 13px !important; }
+        .mermaid marker { fill: var(--text-3) !important; }
+        .mermaid .flowchart-link { stroke: var(--text-3) !important; }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <!-- Left -->
+        <div class="col-left">
+            <div class="pane flow-list">
+                <div class="pane-head">
+                    <h2>Flow History</h2>
+                    <span id="flow-count" class="badge">0</span>
+                </div>
+                <div class="pane-body">
+                    <table>
+                        <thead><tr><th>Flow</th><th>Status</th></tr></thead>
+                        <tbody id="flow-history"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="pane" style="flex:1;">
+                <div class="pane-head">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('slots')">Slots</button>
+                        <button class="tab" onclick="switchTab('events')">Events</button>
+                        <button class="tab" onclick="switchTab('tracker')">Tracker</button>
+                    </div>
+                </div>
+                <div class="pane-body">
+                    <div id="slots-pane" class="tab-pane active">
+                        <table>
+                            <thead><tr><th>Name</th><th>Value</th></tr></thead>
+                            <tbody id="slots-table"></tbody>
+                        </table>
+                    </div>
+                    <div id="events-pane" class="tab-pane">
+                        <div id="events-list"></div>
+                    </div>
+                    <div id="tracker-pane" class="tab-pane">
+                        <pre id="tracker-json"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center -->
+        <div class="pane flow-panel">
+            <div class="pane-head">
+                <h2>Flow: <span id="current-flow-name" style="color:var(--text-1)">--</span></h2>
+                <button class="ghost" onclick="refreshFlows()">Refresh</button>
+            </div>
+            <div class="pane-body">
+                <div id="flow-diagram">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 17V7m0 10l-3-3m3 3l3-3M15 7v10m0-10l3 3m-3-3l-3 3"/>
+                        </svg>
+                        <span>Select a flow to view diagram</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Chat -->
+        <div class="col">
+            <div class="pane-head">
+                <div class="chat-logo">Customer<em>LLM</em><span class="logo-dot"></span></div>
+                <span id="status" class="status disconnected">Offline</span>
+            </div>
+            <div id="chat-box"></div>
+            <div class="input-area">
+                <div class="uid-row">
+                    <label>User ID</label>
+                    <input type="text" id="user-id-input" placeholder="Enter user ID" value="1">
+                    <button class="ghost" onclick="setUserId()" style="padding:5px 10px;font-size:10px;">Switch</button>
+                </div>
+                <div class="send-row">
+                    <input type="text" id="message-input" placeholder="Type a message..."
+                           onkeypress="if(event.key==='Enter')sendMessage()">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+                <div class="btn-row">
+                    <button class="ghost" onclick="newConversation()" style="flex:1;">New Conversation</button>
+                    <button class="ghost" onclick="refreshState()">Refresh</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Init mermaid
+        let mermaidReady = false;
+        try {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: 'dark',
+                    themeVariables: {
+                        primaryColor: '#1e1e27',
+                        primaryTextColor: '#e8e8ed',
+                        primaryBorderColor: '#e85d3a',
+                        lineColor: '#4e4e5e',
+                        secondaryColor: '#111117',
+                        tertiaryColor: '#26262f',
+                        fontFamily: 'Space Mono, Menlo, monospace',
+                        fontSize: '18px'
+                    },
+                    flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis', nodeSpacing: 80, rankSpacing: 100 }
+                });
+                mermaidReady = true;
+            }
+        } catch (e) {
+            console.warn('Mermaid init failed:', e);
+        }
+
+        let sessionId = 'inspect-' + Date.now();
+        let ws = null;
+        let flows = [];
+        let currentFlowId = null;
+        let currentFlowIndex = null;
+        let trackerData = null;
+
+        function connect() {
+            ws = new WebSocket(`ws://${location.host}/api/stream`);
+            ws.onopen = () => {
+                document.getElementById('status').textContent = 'Online';
+                document.getElementById('status').className = 'status connected';
+                ws.send(JSON.stringify({type: 'connect', session_id: sessionId}));
+                refreshState();
+            };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'bot_response') {
+                    data.data.forEach(msg => {
+                        const text = msg.text || JSON.stringify(msg);
+                        const buttons = msg.buttons || [];
+                        addMessage(text, 'bot', buttons);
+                    });
+                    setTimeout(refreshState, 100);
+                }
+            };
+            ws.onclose = () => {
+                document.getElementById('status').textContent = 'Offline';
+                document.getElementById('status').className = 'status disconnected';
+                setTimeout(connect, 3000);
+            };
+        }
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(name + '-pane').classList.add('active');
+        }
+
+        function addMessage(text, type, buttons) {
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = 'msg ' + type;
+            div.textContent = text;
+
+            if (buttons && buttons.length > 0) {
+                const wrap = document.createElement('div');
+                wrap.className = 'msg-buttons';
+                buttons.forEach(btn => {
+                    const b = document.createElement('button');
+                    b.className = 'msg-btn';
+                    b.textContent = btn.title;
+                    b.onclick = () => {
+                        const payload = btn.payload || btn.title;
+                        addMessage(btn.title, 'user');
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({type: 'message', message: payload}));
+                        }
+                    };
+                    wrap.appendChild(b);
+                });
+                div.appendChild(wrap);
+            }
+
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+            addMessage(text, 'user');
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({type: 'message', message: text}));
+            }
+            input.value = '';
+        }
+
+        function newConversation() {
+            sessionId = 'inspect-' + Date.now();
+            document.getElementById('chat-box').innerHTML = '';
+            document.getElementById('flow-history').innerHTML = '';
+            document.getElementById('slots-table').innerHTML = '';
+            document.getElementById('events-list').innerHTML = '';
+            document.getElementById('tracker-json').textContent = '';
+            document.getElementById('flow-count').textContent = '0';
+            document.getElementById('flow-diagram').innerHTML =
+                '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17V7m0 10l-3-3m3 3l3-3M15 7v10m0-10l3 3m-3-3l-3 3"/></svg><span>Select a flow to view diagram</span></div>';
+            currentFlowId = null;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({type: 'connect', session_id: sessionId}));
+            }
+            setTimeout(() => {
+                const userId = document.getElementById('user-id-input').value.trim();
+                if (userId) setUserId(false);
+            }, 200);
+        }
+
+        function setUserId(showMessage = true) {
+            const userId = document.getElementById('user-id-input').value.trim();
+            if (!userId) { alert('Please enter a user ID'); return; }
+            const cmd = `/SetSlots(user_id=${userId})`;
+            if (showMessage) addMessage(`Switch user: ${userId}`, 'user');
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({type: 'message', message: cmd}));
+            }
+            if (showMessage) setTimeout(refreshState, 100);
+        }
+
+        async function refreshState() {
+            try {
+                const resp = await fetch(`/api/tracker/${sessionId}/full`);
+                if (resp.ok) {
+                    trackerData = await resp.json();
+                    updateUI(trackerData);
+                }
+            } catch (e) {
+                console.error('Error refreshing state:', e);
+            }
+        }
+
+        function updateUI(data) {
+            const slotsTable = document.getElementById('slots-table');
+            slotsTable.innerHTML = '';
+            if (data.slots) {
+                Object.entries(data.slots).forEach(([name, value]) => {
+                    const tr = document.createElement('tr');
+                    const val = value === null
+                        ? '<span class="slot-null">null</span>'
+                        : `<span class="slot-val">${JSON.stringify(value)}</span>`;
+                    tr.innerHTML = `<td>${name}</td><td>${val}</td>`;
+                    slotsTable.appendChild(tr);
+                });
+            }
+            if (!slotsTable.innerHTML) {
+                slotsTable.innerHTML = '<tr><td colspan="2" class="empty">No slots</td></tr>';
+            }
+
+            const eventsList = document.getElementById('events-list');
+            eventsList.innerHTML = '';
+            if (data.events && data.events.length > 0) {
+                data.events.forEach(evt => {
+                    const div = document.createElement('div');
+                    div.className = 'evt ' + evt.event;
+                    div.innerHTML = `<div class="evt-type">${evt.event}</div><div>${evt.text || ''}</div>`;
+                    eventsList.appendChild(div);
+                });
+            } else {
+                eventsList.innerHTML = '<div class="empty">No events</div>';
+            }
+
+            const flowHistory = document.getElementById('flow-history');
+            flowHistory.innerHTML = '';
+            if (data.flow_history && data.flow_history.length > 0) {
+                document.getElementById('flow-count').textContent = data.flow_history.length;
+                data.flow_history.forEach((hist, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'flow-row' + (index === currentFlowIndex ? ' active' : '');
+                    tr.dataset.index = index;
+                    const st = hist.completed ? '✓' : '...';
+                    tr.innerHTML = `<td>${hist.flow_id}</td><td>${st}</td>`;
+                    tr.onclick = () => selectFlowByIndex(index, hist.flow_id);
+                    flowHistory.appendChild(tr);
+                });
+            } else {
+                flowHistory.innerHTML = '<tr><td colspan="2" class="empty">No flows</td></tr>';
+                document.getElementById('flow-count').textContent = '0';
+            }
+
+            document.getElementById('tracker-json').textContent = JSON.stringify(data, null, 2);
+            if (data.active_flow && !currentFlowId) selectFlow(data.active_flow);
+        }
+
+        async function refreshFlows() {
+            try {
+                const resp = await fetch('/api/flows');
+                if (resp.ok) {
+                    flows = await resp.json();
+                    if (currentFlowId) renderFlowDiagram(currentFlowId);
+                }
+            } catch (e) {
+                console.error('Error loading flows:', e);
+            }
+        }
+
+        function selectFlowByIndex(index, flowId) {
+            currentFlowIndex = index;
+            currentFlowId = flowId;
+            document.querySelectorAll('.flow-row').forEach(r => r.classList.remove('active'));
+            const row = document.querySelector(`.flow-row[data-index="${index}"]`);
+            if (row) row.classList.add('active');
+            renderFlowDiagram(flowId);
+        }
+
+        function selectFlow(flowId) {
+            currentFlowId = flowId;
+            currentFlowIndex = null;
+            document.querySelectorAll('.flow-row').forEach(r => r.classList.remove('active'));
+            document.querySelectorAll('.flow-row').forEach(r => {
+                if (r.cells[0].textContent === flowId && currentFlowIndex === null) {
+                    r.classList.add('active');
+                    currentFlowIndex = parseInt(r.dataset.index);
+                }
+            });
+            renderFlowDiagram(flowId);
+        }
+
+        function scaleDiagram() {
+            const container = document.getElementById('flow-diagram');
+            const svg = container.querySelector('svg');
+            if (!svg) return;
+            // Reset any previous transform
+            svg.style.transform = '';
+            svg.style.transformOrigin = '';
+            const svgNaturalWidth = svg.viewBox.baseVal.width || svg.getBoundingClientRect().width;
+            const containerWidth = container.clientWidth - 40; // minus padding
+            if (svgNaturalWidth > 0 && containerWidth > svgNaturalWidth) {
+                const scale = containerWidth / svgNaturalWidth;
+                svg.style.transform = 'scale(' + scale + ')';
+                svg.style.transformOrigin = 'top left';
+                svg.style.width = svgNaturalWidth + 'px';
+                svg.style.height = (svg.viewBox.baseVal.height || svg.getBoundingClientRect().height) + 'px';
+            }
+        }
+
+        async function renderFlowDiagram(flowId) {
+            const flow = flows.find(f => f.id === flowId);
+            document.getElementById('current-flow-name').textContent = flowId;
+
+            const builtinPatterns = {
+                'pattern_chitchat': {
+                    name: 'Chitchat Pattern',
+                    action: 'action_chitchat_response',
+                    description: 'Handles non-business casual conversation',
+                    diagram: 'flowchart TD\n    A([User Input]) --> B{Detect Chitchat}\n    B --> C[LLM Generate Reply]\n    C --> D([Return Response])'
+                },
+                'pattern_cannot_handle': {
+                    name: 'Cannot Handle Pattern',
+                    action: 'action_default_fallback',
+                    description: 'Triggered when system cannot understand user intent',
+                    diagram: 'flowchart TD\n    A([User Input]) --> B{Unrecognized}\n    B --> C[Default Reply]\n    C --> D([Return Fallback])'
+                },
+                'pattern_cancel': {
+                    name: 'Cancel Pattern',
+                    action: 'action_cancel_flow',
+                    description: 'User cancels the current conversation flow',
+                    diagram: 'flowchart TD\n    A([User Input]) --> B{Detect Cancel}\n    B --> C[Clear Flow]\n    C --> D([Confirm Cancel])'
+                },
+                'pattern_session_start': {
+                    name: 'Session Start Pattern',
+                    action: 'action_session_start',
+                    description: 'New session initialization',
+                    diagram: 'flowchart TD\n    A([Session Start]) --> B[Init Tracker]\n    B --> C[Send Welcome]\n    C --> D([Wait for Input])'
+                },
+                'pattern_search': {
+                    name: 'Knowledge Search Pattern',
+                    action: 'action_trigger_search',
+                    description: 'GraphRAG knowledge base retrieval with routing, hybrid search, and Cypher generation',
+                    diagram: `flowchart TD
+    A([User Question]) --> B[Push SearchStackFrame]
+    B --> C[EnterpriseSearchPolicy]
+    C --> D{Retriever?}
+    D -->|No| E[No KB Response]
+    D -->|Yes| F[1. Label Routing]
+    F --> G{Route OK?}
+    G -->|No| H[Fallback Keyword]
+    G -->|Yes| I[2. Hybrid Retrieval]
+    H --> I
+    I --> J{Results?}
+    J -->|No| K[No Answer Found]
+    J -->|Yes| L[3. Gen Cypher]
+    L --> M[4. Validate Cypher]
+    M --> N[5. Run Neo4j]
+    N --> O{OK?}
+    O -->|No| P[Retry]
+    O -->|Yes| Q[6. Format]
+    P --> Q
+    Q --> R([Return Result])
+    K --> R
+    E --> R
+    style B fill:#9b7dff,color:#fff
+    style C fill:#9b7dff,color:#fff
+    style F fill:#3acbbe,color:#0a0a0f
+    style I fill:#3acbbe,color:#0a0a0f
+    style L fill:#3acbbe,color:#0a0a0f
+    style M fill:#3acbbe,color:#0a0a0f
+    style N fill:#3acbbe,color:#0a0a0f
+    style Q fill:#3acbbe,color:#0a0a0f
+    style K fill:#f06060,color:#fff
+    style E fill:#f06060,color:#fff`
+                },
+                'pattern_completed': {
+                    name: 'Flow Completed Pattern',
+                    action: 'action_flow_completed',
+                    description: 'After flow completion, asks user if they need further help',
+                    diagram: 'flowchart TD\n    A([Flow Complete]) --> B{Ended}\n    B --> C[Ask More Help?]\n    C --> D([Wait for Input])'
+                },
+                'pattern_human_handoff': {
+                    name: 'Human Handoff Pattern',
+                    action: 'action_human_handoff',
+                    description: 'Transfers conversation to human agent',
+                    diagram: 'flowchart TD\n    A([User Request]) --> B{Handoff?}\n    B --> C[Transfer to Agent]\n    C --> D([Notify Wait])'
+                }
+            };
+
+            const pattern = builtinPatterns[flowId];
+            if (pattern) {
+                const container = document.getElementById('flow-diagram');
+                container.innerHTML =
+                    '<div class="pattern-card">' +
+                    '<strong>' + pattern.name + '</strong>' +
+                    '<p>' + pattern.description + '</p>' +
+                    '<p style="margin-top:6px">Action: <code>' + pattern.action + '</code></p>' +
+                    '</div><div id="mermaid-' + Date.now() + '"></div>';
+                try {
+                    const {svg} = await mermaid.render('mermaid-render-' + Date.now(), pattern.diagram);
+                    container.querySelector('div:last-child').innerHTML = svg;
+                    scaleDiagram();
+                } catch(e) {
+                    console.error('Mermaid render error:', e);
+                }
+                return;
+            }
+
+            if (!flow) {
+                document.getElementById('flow-diagram').innerHTML =
+                    '<div class="empty-state"><span>Flow "' + flowId + '" not found</span></div>';
+                return;
+            }
+
+            let code = 'flowchart TD\n';
+            flow.steps.forEach((step) => {
+                const nodeId = step.id.replace(/[^a-zA-Z0-9]/g, '_');
+                const label = step.action || step.collect || step.id;
+                const shape = step.action ? '([' + label + '])' : step.collect ? '{{' + label + '}}' : '[' + label + ']';
+                code += '    ' + nodeId + shape + '\n';
+
+                function extractTarget(target) {
+                    if (typeof target === 'string') return target;
+                    if (Array.isArray(target) && target.length > 0) {
+                        const last = target[target.length - 1];
+                        if (last.next) return extractTarget(last.next);
+                        return 'END';
+                    }
+                    return null;
+                }
+
+                const nextVal = step.next;
+                if (nextVal) {
+                    if (typeof nextVal === 'string') {
+                        if (nextVal.toLowerCase() !== 'end') {
+                            code += '    ' + nodeId + ' --> ' + nextVal.replace(/[^a-zA-Z0-9]/g, '_') + '\n';
+                        } else {
+                            code += '    ' + nodeId + ' --> END((End))\n';
+                        }
+                    } else if (Array.isArray(nextVal)) {
+                        nextVal.forEach(cond => {
+                            let target = extractTarget(cond.then || cond.else);
+                            const lbl = cond.if ? cond.if.substring(0, 20).replace(/"/g, "'") : 'else';
+                            if (target) {
+                                if (target.toLowerCase() !== 'end') {
+                                    code += '    ' + nodeId + ' -->|' + lbl + '| ' + target.replace(/[^a-zA-Z0-9]/g, '_') + '\n';
+                                } else {
+                                    code += '    ' + nodeId + ' -->|' + lbl + '| END((End))\n';
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    code += '    ' + nodeId + ' --> END((End))\n';
+                }
+            });
+
+            if (trackerData && trackerData.flow_stack) {
+                const frame = trackerData.flow_stack.find(f => f.flow_id === flowId);
+                if (frame) {
+                    code += '    style ' + frame.step_id.replace(/[^a-zA-Z0-9]/g, '_') + ' fill:#e85d3a,color:#fff\n';
+                }
+            }
+
+            try {
+                const container = document.getElementById('flow-diagram');
+                container.innerHTML = '<div class="mermaid">' + code + '</div>';
+                await mermaid.run({ nodes: container.querySelectorAll('.mermaid') });
+                scaleDiagram();
+            } catch (e) {
+                console.error('Mermaid error:', e);
+                document.getElementById('flow-diagram').innerHTML =
+                    '<div class="empty-state"><span>Diagram render failed</span><pre style="font-size:9px;color:var(--text-3);max-width:100%;overflow:auto;">' + code.replace(/\\n/g, '\n') + '</pre></div>';
+            }
+        }
+
+        connect();
+        refreshFlows();
+    </script>
+</body>
+</html>
