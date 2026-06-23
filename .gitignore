@@ -1,0 +1,52 @@
+# Environment files
+.env
+*.env
+!*.env.example
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+.superpowers/
+*.swp
+*.swo
+
+# Tracker data
+trackers/
+logs/
+output/
+
+# Local model files
+models/*
+!models/README.md
+commerce_service_app/models/*
+!commerce_service_app/models/README.md
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.tar.gz
+
+# Docker volumes (local data)
+docker/mysql/data/
+docker/neo4j/data/
+docker/neo4j_import/*.dump
+*.dump
+
+# OS
+.DS_Store
+Thumbs.db
