@@ -1,0 +1,39 @@
+# -*- coding: utf-8 -*-
+# 端点配置文件
+
+# LLM模型配置
+models:
+  default:
+    type: qwen
+    model: qwen-plus-2025-12-01
+    api_key: ${DASHSCOPE_API_KEY}
+    temperature: 0.1
+
+# 检索路由配置：
+# - kb/yunwen: 独立 yunwen MCP 文档知识库
+# - product: 本地 GraphRAG 商品图谱，用于推荐、选购、商品咨询
+vector_store:
+  kb_retriever: addons.yunwen_mcp_retriever.YunwenMcpRetriever
+  product_retriever: addons.information_retrieval.GraphRAG
+  kb:
+    url: http://127.0.0.1:9100/mcp
+    tool: yunwen_query_knowledge_base
+    timeout: 60
+    enable_routing: true
+    enable_crag: true
+  product:
+    uri: ${NEO4J_URL:bolt://127.0.0.1:7687}
+    user: ${NEO4J_USER:neo4j}
+    password: ${NEO4J_PASSWORD}
+
+# 数据库配置 (MySQL)
+database:
+  url: ${ECOMMERCE_DB_URL}
+
+# Tracker存储配置
+tracker_store:
+  type: memory
+
+# NLG配置
+nlg:
+  rephrase_enabled: false
