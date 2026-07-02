@@ -3,6 +3,19 @@
 
 # LLM模型配置
 models:
+  command_parser_ft:
+    type: openai
+    model: yunshu_cmd
+    api_key: ${EAS_TOKEN}
+    api_base: ${EAS_API_BASE:http://1276373449036713.cn-hangzhou.pai-eas.aliyuncs.com/api/predict/yunshu_cmd_qwen3_8b/v1}
+    temperature: 0.0
+    max_tokens: 220
+    timeout: 60
+    enable_thinking: false
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+
   default:
     type: qwen
     model: qwen-plus-2025-12-01

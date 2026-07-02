@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "completion": {
+      "type": "string"
+    },
+    "context": {
+      "properties": {
+        "active_flow": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "known_slots": {
+          "type": "object"
+        },
+        "requested_slot": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "id": {
+      "type": "string"
+    },
+    "input": {
+      "type": "string"
+    },
+    "messages": {
+      "items": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "system",
+              "user",
+              "assistant"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "source": {
+      "const": "synthetic_v1"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "val",
+        "test"
+      ]
+    },
+    "target": {
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "commands": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "dsl": {
+          "type": "string"
+        },
+        "intent": {
+          "type": "string"
+        },
+        "needs_clarification": {
+          "type": "boolean"
+        },
+        "slots": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "intent",
+        "category",
+        "commands",
+        "dsl",
+        "slots",
+        "needs_clarification"
+      ],
+      "type": "object"
+    },
+    "task": {
+      "const": "customer_agent_command_parser"
+    }
+  },
+  "required": [
+    "id",
+    "split",
+    "task",
+    "source",
+    "messages",
+    "input",
+    "context",
+    "target",
+    "completion"
+  ],
+  "title": "Customer Agent Command Parser Example",
+  "type": "object"
+}

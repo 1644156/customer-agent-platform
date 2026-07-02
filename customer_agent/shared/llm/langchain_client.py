@@ -158,15 +158,17 @@ class LangChainClient(LLMClient):
         # 自定义API地址（用于vLLM等）
         if self.api_base:
             llm_kwargs["base_url"] = self.api_base
+
+        extra_body = self.extra_config.get("extra_body")
+        if extra_body:
+            llm_kwargs["extra_body"] = extra_body
         
         # vLLM thinking模式支持
         # 当使用自定义api_base且启用thinking时，通过extra_body传递配置
         # vLLM需要启动时加 --enable-reasoning --reasoning-parser qwen3
-        if self.api_base and self.enable_thinking:
-            llm_kwargs["model_kwargs"] = {
-                "extra_body": {
-                    "chat_template_kwargs": {"enable_thinking": True}
-                }
+        if self.api_base and self.enable_thinking and not extra_body:
+            llm_kwargs["extra_body"] = {
+                "chat_template_kwargs": {"enable_thinking": True}
             }
         
         return ChatOpenAI(**llm_kwargs)

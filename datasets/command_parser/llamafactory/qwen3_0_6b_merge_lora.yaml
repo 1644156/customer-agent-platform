@@ -1,0 +1,9 @@
+model_name_or_path: model/Qwen3-0.6B
+adapter_name_or_path: saves/qwen3-0.6b/yunshu-command-parser-lora
+trust_remote_code: true
+template: qwen3_nothink
+finetuning_type: lora
+export_dir: saves/qwen3-0.6b/yunshu-command-parser-merged
+export_size: 2
+export_device: cpu
+export_legacy_format: false

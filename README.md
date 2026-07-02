@@ -17,12 +17,78 @@
 | --- | --- |
 | 可控 Agent 流程 | 使用 LangGraph 编排 understand、policy、action、guard、response，避免模型直接修改业务状态。 |
 | LLM 命令化 | 模型输出可解释、可检查的命令，再由 Command、Policy、Action 执行。 |
+| 微调命令解析器 | 将 Qwen3-8B LoRA 部署到阿里云 PAI EAS，替换原通用 LLM 命令解析链路，提升领域命令输出稳定性。 |
 | YAML Flow | 订单、物流、售后等业务流程通过 YAML 描述槽位收集、条件跳转和动作执行。 |
 | 业务 Action | 使用 SQLAlchemy 访问 MySQL 示例数据，实现订单、地址、物流、售后等确定性操作。 |
 | 知识源路由 | 区分业务任务、商品咨询、商品推荐、文档问答、闲聊和无法处理场景。 |
 | GraphRAG | 使用 Neo4j 商品图谱处理商品咨询和推荐。 |
 | MCP 集成 | 通过 `YunwenMcpRetriever` 调用云问文档知识库，让客服 Agent 具备文档问答能力。 |
 | 测试覆盖 | 覆盖业务 Action、API 页面、知识路由、GraphRAG fallback、MCP 适配等关键路径。 |
+
+## 微调数据集
+
+仓库内新增了一个面向小模型微调的命令解析数据集：
+
+```text
+datasets/command_parser/
+```
+
+这个数据集用于训练轻量模型把用户自然语言转换成云枢内部命令，而不是直接生成客服回复。样本覆盖业务流程启动、槽位填充、知识问答、闲聊、无法处理、转人工和取消流程等场景。
+
+当前版本规模：
+
+- 999 条合成样本。
+- `train.jsonl`：801 条。
+- `val.jsonl`：99 条。
+- `test.jsonl`：99 条。
+- 输出格式同时包含结构化 `target` 和可执行 DSL，例如 `start flow cancel_order`、`set slot order_id "1"`、`knowledge_answer`。
+
+生成脚本：
+
+```bash
+python scripts/generate_command_parser_dataset.py --output-dir datasets/command_parser
+```
+
+按尚硅谷微调教程继续训练时，可导出 LLaMA-Factory 格式：
+
+```bash
+python scripts/export_command_parser_llamafactory.py
+```
+
+导出结果位于 `datasets/command_parser/llamafactory/`，包含可复制到 LLaMA-Factory 的 `messages` JSONL、`dataset_info` 片段，以及 Qwen3-0.6B LoRA 训练/合并配置。
+
+### 微调模型接入与对比
+
+当前电商客服 Demo 已经把命令解析链路切换到微调后的 Qwen3-8B LoRA 服务：
+
+- `commerce_service_app/endpoints.yml` 中新增 `command_parser_ft`，通过 OpenAI-compatible API 调用 PAI EAS 上的 `yunshu_cmd` LoRA 模型。
+- `commerce_service_app/config.yml` 中 `LLMCommandGenerator` 使用 `command_parser_ft`，而知识检索和问答策略仍保留 `default` 通用模型。
+- `CommandParser` 兼容微调模型输出的 JSON、DSL、Qwen thinking 片段和轻微 JSON 缺口，避免模型输出格式波动直接影响业务流程。
+
+可复现实验：
+
+```bash
+python scripts/smoke_command_parser_ft.py
+python scripts/compare_command_parser_models.py
+```
+
+本地对比结果显示，在流程启动、槽位填充、边界处理和知识问答 25 个命令解析样例上：
+
+| 版本 | 可解析命令 | 平均耗时 |
+| --- | ---: | ---: |
+| 替换前：`default` 通用模型 | 1 / 25 | 1124 ms |
+| 替换后：`command_parser_ft` 微调模型 | 25 / 25 | 2294 ms |
+
+细分结果：
+
+| 场景 | 替换前 | 替换后 |
+| --- | ---: | ---: |
+| 业务流程启动 | 0 / 7 | 7 / 7 |
+| 槽位填充 | 0 / 12 | 12 / 12 |
+| 边界 / 安全 / 澄清 | 1 / 5 | 5 / 5 |
+| 知识问答路由 | 0 / 1 | 1 / 1 |
+
+这个对比体现了项目里的一个关键工程取舍：通用模型继续负责开放式知识问答，微调模型专注把用户话术转换成可执行 DSL，最终执行仍交给确定性的 Flow / Policy / Action。
 
 ## Demo
 

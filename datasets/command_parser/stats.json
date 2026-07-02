@@ -1,0 +1,31 @@
+{
+  "by_category": {
+    "boundary": 171,
+    "flow_start": 378,
+    "knowledge": 66,
+    "slot_fill": 384
+  },
+  "by_intent": {
+    "apply_postsale": 114,
+    "cancel_flow": 24,
+    "cancel_order": 78,
+    "cannot_handle": 36,
+    "chitchat": 45,
+    "clarify": 30,
+    "human_handoff": 36,
+    "knowledge_answer": 66,
+    "modify_order_receive_info": 282,
+    "query_logistics_companys": 54,
+    "query_order_detail": 90,
+    "query_shipping_order_logistics": 54,
+    "switch_user_id": 90
+  },
+  "by_split": {
+    "test": 99,
+    "train": 801,
+    "val": 99
+  },
+  "source": "synthetic_v1",
+  "task": "customer_agent_command_parser",
+  "total": 999
+}

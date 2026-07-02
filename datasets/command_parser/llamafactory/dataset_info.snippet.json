@@ -1,0 +1,44 @@
+{
+  "yunshu_command_parser_test": {
+    "columns": {
+      "messages": "messages"
+    },
+    "file_name": "yunshu_command_parser_test.jsonl",
+    "formatting": "sharegpt",
+    "tags": {
+      "assistant_tag": "assistant",
+      "content_tag": "content",
+      "role_tag": "role",
+      "system_tag": "system",
+      "user_tag": "user"
+    }
+  },
+  "yunshu_command_parser_train": {
+    "columns": {
+      "messages": "messages"
+    },
+    "file_name": "yunshu_command_parser_train.jsonl",
+    "formatting": "sharegpt",
+    "tags": {
+      "assistant_tag": "assistant",
+      "content_tag": "content",
+      "role_tag": "role",
+      "system_tag": "system",
+      "user_tag": "user"
+    }
+  },
+  "yunshu_command_parser_val": {
+    "columns": {
+      "messages": "messages"
+    },
+    "file_name": "yunshu_command_parser_val.jsonl",
+    "formatting": "sharegpt",
+    "tags": {
+      "assistant_tag": "assistant",
+      "content_tag": "content",
+      "role_tag": "role",
+      "system_tag": "system",
+      "user_tag": "user"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "base_model_path": "/mnt/workspace/LLaMA-Factory/model/Qwen3-8B",
+  "adapter_path": "/mnt/workspace/customer_agent_platform/models/yunshu-command-parser-qwen3-8b-lora-inference",
+  "served_model_name": "yunshu-command-parser-qwen3-8b-lora",
+  "template": "qwen3_nothink",
+  "enable_thinking": false,
+  "temperature": 0.0,
+  "do_sample": false,
+  "max_new_tokens": 220,
+  "task": "customer_agent_command_parser"
+}

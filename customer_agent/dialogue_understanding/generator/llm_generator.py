@@ -60,6 +60,7 @@ class LLMGeneratorConfig(GeneratorConfig):
     max_tokens: int = 256
     timeout: float = 30.0
     enable_thinking: bool = False
+    extra_body: Optional[Dict[str, Any]] = None
 
 
 class LLMCommandGenerator(CommandGenerator):
@@ -119,6 +120,7 @@ class LLMCommandGenerator(CommandGenerator):
                 max_tokens=self.config.max_tokens,
                 timeout=self.config.timeout,
                 enable_thinking=self.config.enable_thinking,
+                extra_body=self.config.extra_body,
             )
         return self._llm_client
     
@@ -231,6 +233,7 @@ class LLMCommandGenerator(CommandGenerator):
             max_tokens=config.get("max_tokens", 256),
             timeout=config.get("timeout", 30.0),
             enable_thinking=config.get("enable_thinking", False),
+            extra_body=config.get("extra_body"),
             max_history_turns=config.get("max_history_turns", 5),
             include_slots=config.get("include_slots", True),
             include_flows=config.get("include_flows", True),

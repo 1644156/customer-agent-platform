@@ -509,7 +509,10 @@ class Agent:
                 api_key=llm_config.api_key,
                 api_base=llm_config.api_base,
                 temperature=llm_config.temperature,
+                max_tokens=llm_config.max_tokens,
+                timeout=llm_config.timeout,
                 enable_thinking=llm_config.enable_thinking,
+                extra_body=llm_config.extra_body,
             )
             command_generator = LLMCommandGenerator(config=generator_config)
         
@@ -598,7 +601,10 @@ class Agent:
                 api_key=policy_llm_config.api_key,
                 api_base=policy_llm_config.api_base,
                 temperature=policy_llm_config.temperature,
+                max_tokens=policy_llm_config.max_tokens,
+                timeout=policy_llm_config.timeout,
                 enable_thinking=policy_llm_config.enable_thinking,
+                extra_body=policy_llm_config.extra_body,
             )
             enterprise_policy = EnterpriseSearchPolicy(
                 config=enterprise_config,

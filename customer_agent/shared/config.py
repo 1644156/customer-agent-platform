@@ -94,6 +94,7 @@ class LLMConfig:
     max_tokens: int = DEFAULT_LLM_MAX_TOKENS
     timeout: int = DEFAULT_LLM_TIMEOUT
     enable_thinking: bool = False
+    extra_body: Optional[Dict[str, Any]] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     
     @classmethod
@@ -118,9 +119,11 @@ class LLMConfig:
             max_tokens=config.get("max_tokens", DEFAULT_LLM_MAX_TOKENS),
             timeout=config.get("timeout", DEFAULT_LLM_TIMEOUT),
             enable_thinking=config.get("enable_thinking", False),
-            extra={k: v for k, v in config.items() 
-                   if k not in ["type", "model", "api_key", "api_base", 
-                               "temperature", "max_tokens", "timeout", "enable_thinking"]},
+            extra_body=config.get("extra_body"),
+            extra={k: v for k, v in config.items()
+                   if k not in ["type", "model", "api_key", "api_base",
+                               "temperature", "max_tokens", "timeout",
+                               "enable_thinking", "extra_body"]},
         )
 
 

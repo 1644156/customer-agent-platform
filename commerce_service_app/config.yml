@@ -7,7 +7,7 @@ language: zh
 # Pipeline配置
 pipeline:
   - name: LLMCommandGenerator
-    llm: default  # 引用endpoints.yml中的模型配置
+    llm: command_parser_ft  # 引用endpoints.yml中的模型配置
 
 # 策略配置
 policies:

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import re
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, Type
@@ -73,6 +74,10 @@ class CommandParser:
         
         # 清理文本
         text = self._clean_text(text)
+
+        json_commands = self._extract_commands_from_json(text)
+        if json_commands:
+            text = "\n".join(json_commands)
         
         # 按行分割
         lines = self._split_lines(text)
@@ -126,6 +131,10 @@ class CommandParser:
         """
         # 移除markdown代码块
         text = re.sub(r'```[\w]*\n?', '', text)
+
+        # Qwen/vLLM may include hidden reasoning in the visible content.
+        text = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'^\s*</think>\s*', '', text, flags=re.IGNORECASE)
         
         # 移除内联代码的反引号（如 `cannot_handle` -> cannot_handle）
         text = re.sub(r'`([^`]+)`', r'\1', text)
@@ -140,6 +149,49 @@ class CommandParser:
             lines.append(line)
         
         return '\n'.join(lines)
+
+    def _extract_commands_from_json(self, text: str) -> List[str]:
+        """Extract DSL commands from command-parser JSON output."""
+        text = text.strip()
+        if not text:
+            return []
+
+        candidates = [text]
+        if '"commands"' in text and not text.startswith("{"):
+            candidates.append("{" + text)
+
+        data = None
+        for candidate in candidates:
+            try:
+                data = json.loads(candidate)
+                break
+            except json.JSONDecodeError:
+                match = re.search(r'\{[\s\S]*\}', candidate)
+                if not match:
+                    continue
+                try:
+                    data = json.loads(match.group(0))
+                    break
+                except json.JSONDecodeError:
+                    continue
+
+        if data is None:
+            return []
+
+        if isinstance(data, dict):
+            commands = data.get("commands")
+            if isinstance(commands, list):
+                return [
+                    str(command).strip()
+                    for command in commands
+                    if str(command).strip()
+                ]
+
+            dsl = data.get("dsl")
+            if isinstance(dsl, str) and dsl.strip():
+                return [line.strip() for line in dsl.splitlines() if line.strip()]
+
+        return []
     
     def _split_lines(self, text: str) -> List[str]:
         """分割文本行。
